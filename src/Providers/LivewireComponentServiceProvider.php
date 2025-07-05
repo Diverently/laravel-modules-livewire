@@ -7,7 +7,6 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\Livewire;
-use Mhmiton\LaravelModulesLivewire\Support\Decomposer;
 use Mhmiton\LaravelModulesLivewire\Support\ModuleVoltComponentRegistry;
 use Mhmiton\LaravelModulesLivewire\View\ModuleVoltViewFactory;
 use ReflectionClass;
@@ -41,10 +40,6 @@ class LivewireComponentServiceProvider extends ServiceProvider
 
     protected function registerModuleComponents()
     {
-        if (Decomposer::checkDependencies()->type == 'error') {
-            return false;
-        }
-
         $modules = \Nwidart\Modules\Facades\Module::toCollection();
 
         $modulesLivewireNamespace = config('modules-livewire.namespace', 'Livewire');
@@ -62,22 +57,19 @@ class LivewireComponentServiceProvider extends ServiceProvider
 
             $this->registerComponentDirectory($directory, $namespace, $module->getLowerName().'::');
 
-            (new ModuleVoltComponentRegistry())
-                ->registerComponents([
-                    'path' => $module->getPath(),
-                    'aliasPrefix' => $module->getLowerName().'::',
-                    'namespace' => $namespace,
-                    'view_namespaces' => config('modules-livewire.volt_view_namespaces', ['livewire', 'pages']),
-                ]);
+            if (class_exists(\Livewire\Volt\Volt::class)) {
+                $this->registerVoltComponents(
+                    $module->getPath(),
+                    $module->getLowerName(),
+                    $namespace,
+                    config('modules-livewire.volt_view_namespaces')
+                );
+            }
         });
     }
 
     protected function registerCustomModuleComponents()
     {
-        if (Decomposer::checkDependencies(['livewire/livewire'])->type == 'error') {
-            return false;
-        }
-
         $modules = collect(config('modules-livewire.custom_modules', []));
 
         $modules->each(function ($module, $moduleName) {
@@ -93,14 +85,21 @@ class LivewireComponentServiceProvider extends ServiceProvider
 
             $this->registerComponentDirectory($directory, $namespace, $lowerName.'::');
 
-            (new ModuleVoltComponentRegistry())
-                ->registerComponents([
-                    'path' => $module['path'] ?? null,
-                    'aliasPrefix' => $lowerName.'::',
-                    'namespace' => $namespace,
-                    'view_namespaces' => $module['volt_view_namespaces'] ?? ['livewire', 'pages'],
-                ]);
+            if (class_exists(\Livewire\Volt\Volt::class)) {
+                $this->registerVoltComponents($module['path'], $lowerName, $namespace, $module['volt_view_namespaces']);
+            }
         });
+    }
+
+    protected function registerVoltComponents($path, $aliasPrefix, $namespace, $viewNamespaces)
+    {
+        $registry = new ModuleVoltComponentRegistry();
+        $registry->registerComponents([
+            'path' => $path ?? null,
+            'aliasPrefix' => $aliasPrefix.'::',
+            'namespace' => $namespace,
+            'view_namespaces' => $viewNamespaces ?? ['livewire', 'pages'],
+        ]);
     }
 
     protected function registerComponentDirectory($directory, $namespace, $aliasPrefix = '')
@@ -138,7 +137,7 @@ class LivewireComponentServiceProvider extends ServiceProvider
 
     public function registerModuleVoltViewFactory()
     {
-        if (Decomposer::checkDependencies(['livewire/volt'])->type == 'error') {
+        if (! class_exists(\Livewire\Volt\Volt::class)) {
             return false;
         }
 

@@ -4,7 +4,6 @@ namespace Mhmiton\LaravelModulesLivewire\Traits;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Mhmiton\LaravelModulesLivewire\Support\Decomposer;
 use Mhmiton\LaravelModulesLivewire\Support\ModuleVoltComponentRegistry;
 
 trait VoltComponentParser
@@ -19,10 +18,12 @@ trait VoltComponentParser
 
     protected function parser()
     {
-        $checkDependencies = Decomposer::checkDependencies(['livewire/volt']);
+        if (! class_exists(\Livewire\Volt\Volt::class)) {
+            $output = "\n<options=bold,reverse;fg=red> WHOOPS! </> 😳 \n";
+            $output .= "\n<fg=red;options=bold>Volt not found!</> \n";
+            $output .= "<fg=green;options=bold>Install the Volt package - composer require livewire/volt</> \n";
 
-        if ($checkDependencies->type == 'error') {
-            $this->line($checkDependencies->message);
+            $this->line($output);
 
             return false;
         }
