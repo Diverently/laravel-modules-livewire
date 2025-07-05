@@ -7,10 +7,10 @@ use Livewire\Livewire;
 
 class ModuleVoltComponentRegistry
 {
-    public function registerComponents($options = [])
+    public function getComponents($options = [])
     {
         if (! class_exists(\Livewire\Volt\Volt::class)) {
-            return false;
+            return collect();
         }
 
         $path = data_get($options, 'path');
@@ -25,8 +25,8 @@ class ModuleVoltComponentRegistry
 
         $registerableComponents = $this->getRegisterableComponents($path, $viewNamespaces, $aliasPrefix);
 
-        collect($registerableComponents)
-            ->each(function ($registerableComponent) use ($namespace) {
+        return collect($registerableComponents)
+            ->map(function ($registerableComponent) use ($namespace) {
                 $alias = data_get($registerableComponent, 'alias');
 
                 $path = data_get($registerableComponent, 'path');
@@ -46,8 +46,9 @@ class ModuleVoltComponentRegistry
                     return;
                 }
 
-                $this->component($alias, $path);
-            });
+                return $this->component($alias, $path);
+            })
+            ->filter();
     }
 
     public function getRegisterableComponents($path, $viewNamespaces = [], $aliasPrefix = null)
@@ -151,6 +152,6 @@ class ModuleVoltComponentRegistry
 
         $componentClass = $voltComponentRegistry->make($alias, $path);
 
-        Livewire::component($alias, $componentClass);
+        return [$alias, $componentClass];
     }
 }

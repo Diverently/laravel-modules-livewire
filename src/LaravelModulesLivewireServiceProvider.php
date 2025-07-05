@@ -3,6 +3,8 @@
 namespace Mhmiton\LaravelModulesLivewire;
 
 use Illuminate\Support\ServiceProvider;
+use Mhmiton\LaravelModulesLivewire\Commands\CacheCommand;
+use Mhmiton\LaravelModulesLivewire\Commands\ClearCommand;
 use Mhmiton\LaravelModulesLivewire\Commands\LivewireMakeCommand;
 use Mhmiton\LaravelModulesLivewire\Commands\VoltMakeCommand;
 use Mhmiton\LaravelModulesLivewire\Providers\LivewireComponentServiceProvider;
@@ -52,7 +54,17 @@ class LaravelModulesLivewireServiceProvider extends ServiceProvider
         $this->commands([
             LivewireMakeCommand::class,
             VoltMakeCommand::class,
+            CacheCommand::class,
+            ClearCommand::class,
         ]);
+
+        if (method_exists($this, 'optimizes')) {
+            $this->optimizes(
+                'module:components-cache',
+                'module:components-clear',
+                'module-components'
+            );
+        }
     }
 
     protected function registerPublishables()
