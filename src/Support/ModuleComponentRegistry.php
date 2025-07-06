@@ -78,8 +78,6 @@ class ModuleComponentRegistry
 
                 $namespace = $moduleNamespace . '\\' . $module->getName() . '\\' . $modulesLivewireNamespace;
 
-                ray($namespace);
-
                 $components = $this->getComponentsFromDirectory($directory, $namespace, $module->getLowerName() . '::');
 
                 if (class_exists(\Livewire\Volt\Volt::class)) {
