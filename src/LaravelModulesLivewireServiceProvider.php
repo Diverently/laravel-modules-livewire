@@ -3,46 +3,41 @@
 namespace Mhmiton\LaravelModulesLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Mhmiton\LaravelModulesLivewire\Commands\CacheCommand;
-use Mhmiton\LaravelModulesLivewire\Commands\ClearCommand;
+use Mhmiton\LaravelModulesLivewire\Commands\CacheComponentsCommand;
+use Mhmiton\LaravelModulesLivewire\Commands\ClearComponentsCacheCommand;
 use Mhmiton\LaravelModulesLivewire\Commands\LivewireMakeCommand;
 use Mhmiton\LaravelModulesLivewire\Commands\VoltMakeCommand;
-use Mhmiton\LaravelModulesLivewire\Providers\LivewireComponentServiceProvider;
 
 class LaravelModulesLivewireServiceProvider extends ServiceProvider
 {
-    /**
-     * Register services.
-     *
-     * @return void
-     */
-    public function register()
+    public function boot(LivewireComponentRegistrar $registrar): void
     {
-        //
+        $components = $registrar->getComponents();
+
+        foreach ($components as [$alias, $class]) {
+            Livewire::component($alias, $class);
+        }
     }
 
-    /**
-     * Bootstrap services.
-     *
-     * @return void
-     */
-    public function boot()
+    public function register()
     {
-        $this->registerProviders();
+        $this->registerComponentRegistrar();
 
         $this->registerCommands();
 
         $this->registerPublishables();
 
         $this->mergeConfigFrom(
-            __DIR__.'/../config/modules-livewire.php',
+            __DIR__ . '/../config/modules-livewire.php',
             'modules-livewire'
         );
     }
 
-    protected function registerProviders()
+    protected function registerComponentRegistrar()
     {
-        $this->app->register(LivewireComponentServiceProvider::class);
+        $this->app->singleton(LivewireComponentRegistrar::class, function ($app) {
+            return new LivewireComponentRegistrar($app->make(\Illuminate\Filesystem\Filesystem::class));
+        });
     }
 
     protected function registerCommands()
@@ -54,15 +49,15 @@ class LaravelModulesLivewireServiceProvider extends ServiceProvider
         $this->commands([
             LivewireMakeCommand::class,
             VoltMakeCommand::class,
-            CacheCommand::class,
-            ClearCommand::class,
+            CacheComponentsCommand::class,
+            ClearComponentsCacheCommand::class,
         ]);
 
         if (method_exists($this, 'optimizes')) {
             $this->optimizes(
-                'module:components-cache',
-                'module:components-clear',
-                'module-components'
+                'livewire-modules:cache-components',
+                'livewire-modules:clear-components-cache',
+                'livewire-modules-components'
             );
         }
     }
@@ -70,11 +65,11 @@ class LaravelModulesLivewireServiceProvider extends ServiceProvider
     protected function registerPublishables()
     {
         $this->publishes([
-            __DIR__.'/../config/modules-livewire.php' => base_path('config/modules-livewire.php'),
+            __DIR__ . '/../config/modules-livewire.php' => base_path('config/modules-livewire.php'),
         ], ['modules-livewire-config']);
 
         $this->publishes([
-            __DIR__.'/Commands/stubs/' => base_path('stubs/modules-livewire'),
+            __DIR__ . '/Commands/stubs/' => base_path('stubs/modules-livewire'),
         ], ['modules-livewire-stub']);
     }
 }
